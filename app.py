@@ -266,9 +266,9 @@ st.sidebar.markdown("""
 '>
     <h3 style='color: white; margin-bottom: 10px;'>Kelompok 15</h3>
     <p style='color: white; line-height: 1.7; font-size: 0.9em;'>
-        Shearani Gino &nbsp;&nbsp;– Matematika – 5002221035<br>
-        Sarma Elvita Malona &nbsp;&nbsp;– Matematika – 5002221031<br>
-        Gissella Nasywa A. &nbsp;&nbsp;– Matematika – 5002221109
+        Shearani Gino &nbsp;&nbsp;– Matematika (5002221035)<br>
+        Sarma Elvita Malona &nbsp;&nbsp;– Matematika (5002221031)<br>
+        Gissella Nasywa A. &nbsp;&nbsp;– Matematika (5002221109)
     </p>
 </div>
 """, unsafe_allow_html=True)
@@ -309,23 +309,13 @@ st.sidebar.markdown("""
 
 st.sidebar.markdown("---")
 
-# Apply filters
-filtered_pti = pti_data[pti_data["Cluster"].isin(selected_clusters) & pti_data["Kota"].isin(selected_cities)]
-filtered_full = full_data[full_data["Cluster"].isin(selected_clusters) & full_data["Kota"].isin(selected_cities)]
-
 # ---------- Data clean: pastikan numeric ----------
 # Konversi kolom yang harusnya numeric menjadi numeric (jika berupa string)
-for col in ["PTI"]:
-    pti_data[col] = pd.to_numeric(pti_data[col], errors="coerce")
-if "IPM" in full_data.columns:
-    full_data["IPM"] = pd.to_numeric(full_data["IPM"], errors="coerce")
-if "MPI" in full_data.columns:
-    full_data["MPI"] = pd.to_numeric(full_data["MPI"], errors="coerce")
-for c in ["P1", "P2"]:
+numeric_cols = ["PTI","IPM","MPI","P1","P2"]
+for c in numeric_cols:
     if c in full_data.columns:
         full_data[c] = pd.to_numeric(full_data[c], errors="coerce")
-
-# rebuild filtered frames after possible conversion
+# rebuild filtered frames
 filtered_pti = pti_data[pti_data["Cluster"].isin(selected_clusters) & pti_data["Kota"].isin(selected_cities)]
 filtered_full = full_data[full_data["Cluster"].isin(selected_clusters) & full_data["Kota"].isin(selected_cities)]
 
@@ -420,9 +410,7 @@ with tab1:
         fig_pti.update_traces(
             texttemplate='%{text}',     # tampilkan literal text kolom string
             textposition="outside",
-            cliponaxis=False
-        )
-        fig_pti.update_traces(hovertemplate='<b>%{y}</b><br>PTI: %{x:.3f}<extra></extra>')
+            hovertemplate='<b>%{y}</b><br>PTI: %{x:.3f}<extra></extra>')
         fig_pti.update_layout(
             height=520,
             margin=dict(l=120, r=40, t=80, b=60),
@@ -476,8 +464,10 @@ with tab2:
                     title="<b>Indeks Pembangunan Manusia (IPM)</b>",
                     color_discrete_sequence=["#1d5175"]
                 )
-                fig_ipm.update_traces(texttemplate='%{text}', textposition='outside')
-                fig_ipm.update_traces(hovertemplate='<b>%{x}</b><br>IPM: %{y:.2f}<extra></extra>')
+                fig_ipm.update_traces(texttemplate='%{text}', 
+                                      textposition='outside',
+                                      hovertemplate='<b>%{x}</b><br>IPM: %{y:.2f}<extra></extra>'
+                )
                 fig_ipm.update_layout(
                     height=420,
                     margin=dict(l=40, r=40, t=60, b=120),
@@ -515,8 +505,8 @@ with tab2:
                     title="<b>Indeks Kemiskinan Multidimensi (MPI)</b>",
                     color_discrete_sequence=["#1d5175"]
                 )
-                fig_mpi.update_traces(texttemplate='%{text}', textposition='outside')
-                fig_mpi.update_traces(hovertemplate='<b>%{x}</b><br>MPI: %{y:.2f}<extra></extra>')
+                fig_mpi.update_traces(texttemplate='%{text}', textposition='outside',
+                                      hovertemplate='<b>%{x}</b><br>MPI: %{y:.2f}<extra></extra>')
                 fig_mpi.update_layout(
                     height=420,
                     margin=dict(l=40, r=40, t=60, b=120),
@@ -561,8 +551,8 @@ with tab2:
                     title="<b>Indeks Kedalaman Kemiskinan (P1)</b>",
                     color_discrete_sequence=["#1d5175"]
                 )
-                fig_p1.update_traces(texttemplate='%{text}', textposition='outside')
-                fig_p1.update_traces(hovertemplate='<b>%{x}</b><br>P1: %{y:.2f}<extra></extra>')
+                fig_p1.update_traces(texttemplate='%{text}', textposition='outside',
+                                     hovertemplate='<b>%{x}</b><br>P1: %{y:.2f}<extra></extra>')
                 fig_p1.update_layout(
                     height=420,
                     margin=dict(l=40, r=40, t=60, b=120),
@@ -600,8 +590,8 @@ with tab2:
                     title="<b>Indeks Keparahan Kemiskinan (P2)</b>",
                     color_discrete_sequence=["#1d5175"]
                 )
-                fig_p2.update_traces(texttemplate='%{text}', textposition='outside')
-                fig_p2.update_traces(hovertemplate='<b>%{x}</b><br>P2: %{y:.2f}<extra></extra>')
+                fig_p2.update_traces(texttemplate='%{text}', textposition='outside',
+                                     hovertemplate='<b>%{x}</b><br>P2: %{y:.2f}<extra></extra>')
                 fig_p2.update_layout(
                     height=420,
                     margin=dict(l=40, r=40, t=60, b=120),
