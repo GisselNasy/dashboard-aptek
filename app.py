@@ -256,6 +256,24 @@ st.sidebar.markdown("<h2 style='text-align: center; margin-bottom: 2rem; color: 
 
 st.sidebar.markdown("---")
 
+st.sidebar.markdown("""
+<div style='
+    background: rgba(255,255,255,0.18);
+    padding: 15px;
+    border-radius: 10px;
+    margin-top: 1rem;
+    color: white;
+'>
+    <h3 style='color: white; margin-bottom: 10px;'>Kelompok 15</h3>
+    <p style='color: white; line-height: 1.7; font-size: 0.9em;'>
+        Shearani Gino &nbsp;&nbsp;– Matematika – 5002221035<br>
+        Sarma Elvita Malona &nbsp;&nbsp;– Matematika – 5002221031<br>
+        Gissella Nasywa A. &nbsp;&nbsp;– Matematika – 5002221109
+    </p>
+</div>
+""", unsafe_allow_html=True)
+
+
 # Filter by cluster
 st.sidebar.markdown("<h3 style='margin-bottom: 1rem; color: white;'>Filter Cluster</h3>", unsafe_allow_html=True)
 selected_clusters = st.sidebar.multiselect(
@@ -384,36 +402,38 @@ with tab1:
         st.subheader("Peringkat PTI Kota Urban Jawa Timur")
         
         # Peringkat PTI (horizontal bar)
-        pti_sorted = filtered_pti.sort_values("PTI", ascending=True)  # ascending untuk bar horizontal dari terendah ke tertinggi
+        pti_sorted = filtered_pti.sort_values("PTI", ascending=True)
+        # buat kolom teks eksplisit sebagai string
+        pti_sorted = pti_sorted.assign(PTI_text = pti_sorted["PTI"].round(3).astype(str))
 
         fig_pti = px.bar(
             pti_sorted,
             x="PTI",
             y="Kota",
             orientation="h",
-            text=pti_sorted["PTI"].round(3),
+            text="PTI_text",            # gunakan nama kolom string
             color="Cluster",
             color_discrete_map=COLORS,
             title="<b>Peringkat Poverty Transition Index (PTI)</b>",
         )
 
-        # Gunakan texttemplate yang eksplisit; untuk horizontal bar gunakan %{x:.3f}
         fig_pti.update_traces(
-            texttemplate='%{text}',
+            texttemplate='%{text}',     # tampilkan literal text kolom string
             textposition="outside",
-            marker=dict(line=dict(width=1, color='rgba(255,255,255,0)')),
             cliponaxis=False
         )
+        fig_pti.update_traces(hovertemplate='<b>%{y}</b><br>PTI: %{x:.3f}<extra></extra>')
         fig_pti.update_layout(
             height=520,
             margin=dict(l=120, r=40, t=80, b=60),
             plot_bgcolor='white',
             paper_bgcolor='white',
             xaxis=dict(title="PTI Value", showgrid=True, gridcolor='rgba(0,0,0,0.05)'),
-            yaxis=dict(title="", autorange="reversed"),  # reversed keeps lowest on top for horizontal bars
+            yaxis=dict(title="", autorange="reversed"),
             legend=dict(title="Cluster", bgcolor='white', bordercolor='#1d5175', borderwidth=1)
         )
         st.plotly_chart(fig_pti, use_container_width=True)
+
         
         # Tabel 12 Indikator dengan Statistika Deskriptif
         st.subheader("Statistika Deskriptif 12 Indikator Kemiskinan Multidimensi")
@@ -444,18 +464,20 @@ with tab2:
         colA, colB = st.columns(2)
         
         with colA:
-            # IPM bar (vertical)
+            # IPM
             ipm_data_filtered = filtered_full.dropna(subset=['IPM']).sort_values('IPM', ascending=False)
             if len(ipm_data_filtered) > 0:
+                ipm_data_filtered = ipm_data_filtered.assign(IPM_text = ipm_data_filtered["IPM"].round(2).astype(str))
                 fig_ipm = px.bar(
                     ipm_data_filtered,
                     x="Kota",
                     y="IPM",
-                    text=ipm_data_filtered["IPM"].round(2),
+                    text="IPM_text",
                     title="<b>Indeks Pembangunan Manusia (IPM)</b>",
                     color_discrete_sequence=["#1d5175"]
                 )
                 fig_ipm.update_traces(texttemplate='%{text}', textposition='outside')
+                fig_ipm.update_traces(hovertemplate='<b>%{x}</b><br>IPM: %{y:.2f}<extra></extra>')
                 fig_ipm.update_layout(
                     height=420,
                     margin=dict(l=40, r=40, t=60, b=120),
@@ -482,18 +504,19 @@ with tab2:
 
         
         with colB:
-                    # IPM bar (vertical)
             mpi_data_filtered = filtered_full.dropna(subset=['MPI']).sort_values('MPI', ascending=False)
             if len(mpi_data_filtered) > 0:
+                mpi_data_filtered = mpi_data_filtered.assign(MPI_text = mpi_data_filtered["MPI"].round(2).astype(str))
                 fig_mpi = px.bar(
                     mpi_data_filtered,
                     x="Kota",
                     y="MPI",
-                    text=mpi_data_filtered["MPI"].round(2),
+                    text="MPI_text",
                     title="<b>Indeks Kemiskinan Multidimensi (MPI)</b>",
                     color_discrete_sequence=["#1d5175"]
                 )
                 fig_mpi.update_traces(texttemplate='%{text}', textposition='outside')
+                fig_mpi.update_traces(hovertemplate='<b>%{x}</b><br>MPI: %{y:.2f}<extra></extra>')
                 fig_mpi.update_layout(
                     height=420,
                     margin=dict(l=40, r=40, t=60, b=120),
@@ -529,15 +552,17 @@ with tab2:
         with colC:
             p1_data_filtered = filtered_full.dropna(subset=['P1']).sort_values('P1', ascending=False)
             if len(p1_data_filtered) > 0:
+                p1_data_filtered = p1_data_filtered.assign(P1_text = p1_data_filtered["P1"].round(2).astype(str))
                 fig_p1 = px.bar(
                     p1_data_filtered,
                     x="Kota",
                     y="P1",
-                    text=p1_data_filtered["P1"].round(2),
+                    text="P1_text",
                     title="<b>Indeks Kedalaman Kemiskinan (P1)</b>",
                     color_discrete_sequence=["#1d5175"]
                 )
                 fig_p1.update_traces(texttemplate='%{text}', textposition='outside')
+                fig_p1.update_traces(hovertemplate='<b>%{x}</b><br>P1: %{y:.2f}<extra></extra>')
                 fig_p1.update_layout(
                     height=420,
                     margin=dict(l=40, r=40, t=60, b=120),
@@ -566,15 +591,17 @@ with tab2:
         with colD:
             p2_data_filtered = filtered_full.dropna(subset=['P2']).sort_values('P2', ascending=False)
             if len(p2_data_filtered) > 0:
+                p2_data_filtered = p2_data_filtered.assign(P2_text = p2_data_filtered["P2"].round(2).astype(str))
                 fig_p2 = px.bar(
                     p2_data_filtered,
                     x="Kota",
                     y="P2",
-                    text=p2_data_filtered["P2"].round(2),
+                    text="P2_text",
                     title="<b>Indeks Keparahan Kemiskinan (P2)</b>",
                     color_discrete_sequence=["#1d5175"]
                 )
                 fig_p2.update_traces(texttemplate='%{text}', textposition='outside')
+                fig_p2.update_traces(hovertemplate='<b>%{x}</b><br>P2: %{y:.2f}<extra></extra>')
                 fig_p2.update_layout(
                     height=420,
                     margin=dict(l=40, r=40, t=60, b=120),
