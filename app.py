@@ -295,6 +295,23 @@ st.sidebar.markdown("---")
 filtered_pti = pti_data[pti_data["Cluster"].isin(selected_clusters) & pti_data["Kota"].isin(selected_cities)]
 filtered_full = full_data[full_data["Cluster"].isin(selected_clusters) & full_data["Kota"].isin(selected_cities)]
 
+# ---------- Data clean: pastikan numeric ----------
+# Konversi kolom yang harusnya numeric menjadi numeric (jika berupa string)
+for col in ["PTI"]:
+    pti_data[col] = pd.to_numeric(pti_data[col], errors="coerce")
+if "IPM" in full_data.columns:
+    full_data["IPM"] = pd.to_numeric(full_data["IPM"], errors="coerce")
+if "MPI" in full_data.columns:
+    full_data["MPI"] = pd.to_numeric(full_data["MPI"], errors="coerce")
+for c in ["P1", "P2"]:
+    if c in full_data.columns:
+        full_data[c] = pd.to_numeric(full_data[c], errors="coerce")
+
+# rebuild filtered frames after possible conversion
+filtered_pti = pti_data[pti_data["Cluster"].isin(selected_clusters) & pti_data["Kota"].isin(selected_cities)]
+filtered_full = full_data[full_data["Cluster"].isin(selected_clusters) & full_data["Kota"].isin(selected_cities)]
+
+
 # ===============================
 # HEADER
 # ===============================
@@ -366,36 +383,36 @@ with tab1:
         # Peringkat PTI
         st.subheader("Peringkat PTI Kota Urban Jawa Timur")
         
-        pti_sorted = filtered_pti.sort_values("PTI")
-        
+        # Peringkat PTI (horizontal bar)
+        pti_sorted = filtered_pti.sort_values("PTI", ascending=True)  # ascending untuk bar horizontal dari terendah ke tertinggi
+
         fig_pti = px.bar(
             pti_sorted,
-            x="PTI", 
+            x="PTI",
             y="Kota",
-            text="PTI",
+            orientation="h",
+            text=pti_sorted["PTI"].round(3),
             color="Cluster",
             color_discrete_map=COLORS,
-            title="<b>Peringkat Poverty Trap Index (PTI)</b>",
-        )
-        
-        fig_pti.update_traces(
-            texttemplate='%{text:.3f}',
-            textposition="outside",
-            marker=dict(line=dict(width=2, color='white'))
-        )
-        fig_pti.update_layout(
-            height=500,
-            plot_bgcolor='white',
-            paper_bgcolor='white',
-            font=dict(color='#1d5175', size=12),
-            title_font=dict(size=20, color='#1d5175'),
-            xaxis=dict(showgrid=True, gridcolor='rgba(0,0,0,0.1)', title="PTI Value"),
-            yaxis=dict(showgrid=False, title="Kota"),
-            showlegend=True,
-            legend=dict(title="Cluster", bgcolor='white', bordercolor='#1d5175', borderwidth=1)
+            title="<b>Peringkat Poverty Transition Index (PTI)</b>",
         )
 
-        
+        # Gunakan texttemplate yang eksplisit; untuk horizontal bar gunakan %{x:.3f}
+        fig_pti.update_traces(
+            texttemplate='%{text}',
+            textposition="outside",
+            marker=dict(line=dict(width=1, color='rgba(255,255,255,0)')),
+            cliponaxis=False
+        )
+        fig_pti.update_layout(
+            height=520,
+            margin=dict(l=120, r=40, t=80, b=60),
+            plot_bgcolor='white',
+            paper_bgcolor='white',
+            xaxis=dict(title="PTI Value", showgrid=True, gridcolor='rgba(0,0,0,0.05)'),
+            yaxis=dict(title="", autorange="reversed"),  # reversed keeps lowest on top for horizontal bars
+            legend=dict(title="Cluster", bgcolor='white', bordercolor='#1d5175', borderwidth=1)
+        )
         st.plotly_chart(fig_pti, use_container_width=True)
         
         # Tabel 12 Indikator dengan Statistika Deskriptif
@@ -427,28 +444,30 @@ with tab2:
         colA, colB = st.columns(2)
         
         with colA:
+            # IPM bar (vertical)
             ipm_data_filtered = filtered_full.dropna(subset=['IPM']).sort_values('IPM', ascending=False)
             if len(ipm_data_filtered) > 0:
                 fig_ipm = px.bar(
                     ipm_data_filtered,
                     x="Kota",
                     y="IPM",
+                    text=ipm_data_filtered["IPM"].round(2),
                     title="<b>Indeks Pembangunan Manusia (IPM)</b>",
-                    color="IPM",
-                    color_continuous_scale=[[0, '#1d5175'], [0.5, '#6bb9d4'], [1, '#7eeb55']]
+                    color_discrete_sequence=["#1d5175"]
                 )
+                fig_ipm.update_traces(texttemplate='%{text}', textposition='outside')
                 fig_ipm.update_layout(
+                    height=420,
+                    margin=dict(l=40, r=40, t=60, b=120),
                     plot_bgcolor='white',
                     paper_bgcolor='white',
-                    font=dict(color='#1d5175'),
-                    height=400,
-                    title_font=dict(color='#1d5175'),
-                    xaxis=dict(showgrid=False),
-                    yaxis=dict(showgrid=True, gridcolor='rgba(0,0,0,0.1)')
+                    yaxis=dict(title="IPM", gridcolor='rgba(0,0,0,0.05)'),
+                    xaxis=dict(tickangle=-45)
                 )
                 st.plotly_chart(fig_ipm, use_container_width=True)
             else:
                 st.info("Tidak ada data IPM untuk ditampilkan dengan filter saat ini.")
+
 
         st.markdown("""
         <div class="info-box">
@@ -463,28 +482,30 @@ with tab2:
 
         
         with colB:
+                    # IPM bar (vertical)
             mpi_data_filtered = filtered_full.dropna(subset=['MPI']).sort_values('MPI', ascending=False)
             if len(mpi_data_filtered) > 0:
                 fig_mpi = px.bar(
                     mpi_data_filtered,
                     x="Kota",
                     y="MPI",
+                    text=mpi_data_filtered["MPI"].round(2),
                     title="<b>Indeks Kemiskinan Multidimensi (MPI)</b>",
-                    color="MPI",
-                    color_continuous_scale=[[0, '#7eeb55'], [0.5, '#f9b61a'], [1, '#6bb9d4']]
+                    color_discrete_sequence=["#1d5175"]
                 )
+                fig_mpi.update_traces(texttemplate='%{text}', textposition='outside')
                 fig_mpi.update_layout(
+                    height=420,
+                    margin=dict(l=40, r=40, t=60, b=120),
                     plot_bgcolor='white',
                     paper_bgcolor='white',
-                    font=dict(color='#1d5175'),
-                    height=400,
-                    title_font=dict(color='#1d5175'),
-                    xaxis=dict(showgrid=False),
-                    yaxis=dict(showgrid=True, gridcolor='rgba(0,0,0,0.1)')
+                    yaxis=dict(title="MPI", gridcolor='rgba(0,0,0,0.05)'),
+                    xaxis=dict(tickangle=-45)
                 )
                 st.plotly_chart(fig_mpi, use_container_width=True)
             else:
                 st.info("Tidak ada data MPI untuk ditampilkan dengan filter saat ini.")
+
 
         st.markdown("""
         <div class="info-box">
@@ -512,22 +533,23 @@ with tab2:
                     p1_data_filtered,
                     x="Kota",
                     y="P1",
+                    text=p1_data_filtered["P1"].round(2),
                     title="<b>Indeks Kedalaman Kemiskinan (P1)</b>",
-                    color="P1",
-                    color_continuous_scale=[[0, '#7eeb55'], [0.5, '#f9b61a'], [1, '#1d5175']]
+                    color_discrete_sequence=["#1d5175"]
                 )
+                fig_p1.update_traces(texttemplate='%{text}', textposition='outside')
                 fig_p1.update_layout(
+                    height=420,
+                    margin=dict(l=40, r=40, t=60, b=120),
                     plot_bgcolor='white',
                     paper_bgcolor='white',
-                    font=dict(color='#1d5175'),
-                    height=400,
-                    title_font=dict(color='#1d5175'),
-                    xaxis=dict(showgrid=False),
-                    yaxis=dict(showgrid=True, gridcolor='rgba(0,0,0,0.1)')
+                    yaxis=dict(title="P1", gridcolor='rgba(0,0,0,0.05)'),
+                    xaxis=dict(tickangle=-45)
                 )
                 st.plotly_chart(fig_p1, use_container_width=True)
             else:
                 st.info("Tidak ada data P1 untuk ditampilkan dengan filter saat ini.")
+
 
         st.markdown("""
         <div class="info-box">
@@ -548,22 +570,23 @@ with tab2:
                     p2_data_filtered,
                     x="Kota",
                     y="P2",
+                    text=p2_data_filtered["P2"].round(2),
                     title="<b>Indeks Keparahan Kemiskinan (P2)</b>",
-                    color="P2",
-                    color_continuous_scale=[[0, '#6bb9d4'], [0.5, '#f9b61a'], [1, '#1d5175']]
+                    color_discrete_sequence=["#1d5175"]
                 )
+                fig_p2.update_traces(texttemplate='%{text}', textposition='outside')
                 fig_p2.update_layout(
+                    height=420,
+                    margin=dict(l=40, r=40, t=60, b=120),
                     plot_bgcolor='white',
                     paper_bgcolor='white',
-                    font=dict(color='#1d5175'),
-                    height=400,
-                    title_font=dict(color='#1d5175'),
-                    xaxis=dict(showgrid=False),
-                    yaxis=dict(showgrid=True, gridcolor='rgba(0,0,0,0.1)')
+                    yaxis=dict(title="P2", gridcolor='rgba(0,0,0,0.05)'),
+                    xaxis=dict(tickangle=-45)
                 )
                 st.plotly_chart(fig_p2, use_container_width=True)
             else:
                 st.info("Tidak ada data P2 untuk ditampilkan dengan filter saat ini.")
+
 
         st.markdown("""
         <div class="info-box">
