@@ -389,12 +389,20 @@ with tab1:
         st.warning("⚠️ Tidak ada data yang sesuai dengan filter yang dipilih. Silakan sesuaikan filter di sidebar.")
     else:
         # Peringkat PTI
-        # ---------------- PTI (ganti blok lama) ----------------
         st.subheader("Peringkat PTI Kota Urban Jawa Timur")
 
-        pti_sorted = filtered_pti.sort_values("PTI", ascending=True).reset_index(drop=True)
+        # Pastikan PTI numeric — paksa coercion lagi pada pti_data dan full_data
+        pti_data["PTI"] = pd.to_numeric(pti_data["PTI"], errors="coerce")
+        if "PTI" in full_data.columns:
+            full_data["PTI"] = pd.to_numeric(full_data["PTI"], errors="coerce")
 
-        # buat kolom teks eksplisit
+        # Rebuild filtered frames (agar perubahan diterapkan)
+        filtered_pti = pti_data[pti_data["Cluster"].isin(selected_clusters) & pti_data["Kota"].isin(selected_cities)].copy()
+        filtered_full = full_data[full_data["Cluster"].isin(selected_clusters) & full_data["Kota"].isin(selected_cities)].copy()
+
+        # Peringkat PTI (horizontal bar) — robust text handling
+        pti_sorted = filtered_pti.sort_values("PTI", ascending=True)
+        # buat kolom teks eksplisit sebagai string
         pti_sorted = pti_sorted.assign(PTI_text = pti_sorted["PTI"].round(3).astype(str))
 
         fig_pti = px.bar(
@@ -402,35 +410,27 @@ with tab1:
             x="PTI",
             y="Kota",
             orientation="h",
-            text="PTI_text",
+            text="PTI_text",            # gunakan nama kolom string
             color="Cluster",
             color_discrete_map=COLORS,
             title="<b>Peringkat Poverty Transition Index (PTI)</b>",
         )
 
-        # biarkan Plotly otomatis menempatkan teks (bagus untuk nilai negatif & positif)
         fig_pti.update_traces(
-            texttemplate='%{text}',
-            textposition='auto',    # 'auto' menempatkan teks di dalam/luar sesuai nilai
-            cliponaxis=False,
-            hovertemplate='<b>%{y}</b><br>PTI: %{x:.3f}<extra></extra>'
+            texttemplate='%{text}',     # tampilkan literal text kolom string
+            textposition="outside",
+            cliponaxis=False
         )
-
-        # Pastikan range x mencakup nilai negatif juga (padding 10%)
-        min_x = pti_sorted["PTI"].min() if not pti_sorted["PTI"].isna().all() else 0
-        max_x = pti_sorted["PTI"].max() if not pti_sorted["PTI"].isna().all() else 0
-        pad = (max_x - min_x) * 0.12 if (max_x - min_x) != 0 else 0.5
+        fig_pti.update_traces(hovertemplate='<b>%{y}</b><br>PTI: %{x:.3f}<extra></extra>')
         fig_pti.update_layout(
             height=520,
-            margin=dict(l=140, r=40, t=80, b=60),
+            margin=dict(l=120, r=40, t=80, b=60),
             plot_bgcolor='white',
             paper_bgcolor='white',
-            xaxis=dict(title="PTI Value", showgrid=True, gridcolor='rgba(0,0,0,0.05)',
-                    range=[min_x - pad, max_x + pad]),
+            xaxis=dict(title="PTI Value", showgrid=True, gridcolor='rgba(0,0,0,0.05)'),
             yaxis=dict(title="", autorange="reversed"),
             legend=dict(title="Cluster", bgcolor='white', bordercolor='#1d5175', borderwidth=1)
         )
-
         st.plotly_chart(fig_pti, use_container_width=True)
 
 
