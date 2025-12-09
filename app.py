@@ -252,7 +252,7 @@ COLORS = {
 # SIDEBAR
 # ===============================
 
-st.sidebar.markdown("<h2 style='text-align: center; margin-bottom: 2rem; color: white;'>FILTER & KONTROL</h2>", unsafe_allow_html=True)
+st.sidebar.markdown("<h2 style='text-align: center; margin-bottom: 2rem; color: white;'>Project Aplikasi Teknologi & Transformasi Digital (3)</h2>", unsafe_allow_html=True)
 
 st.sidebar.markdown("---")
 
@@ -389,11 +389,12 @@ with tab1:
         st.warning("⚠️ Tidak ada data yang sesuai dengan filter yang dipilih. Silakan sesuaikan filter di sidebar.")
     else:
         # Peringkat PTI
+        # ---------------- PTI (ganti blok lama) ----------------
         st.subheader("Peringkat PTI Kota Urban Jawa Timur")
-        
-        # Peringkat PTI (horizontal bar)
-        pti_sorted = filtered_pti.sort_values("PTI", ascending=True)
-        # buat kolom teks eksplisit sebagai string
+
+        pti_sorted = filtered_pti.sort_values("PTI", ascending=True).reset_index(drop=True)
+
+        # buat kolom teks eksplisit
         pti_sorted = pti_sorted.assign(PTI_text = pti_sorted["PTI"].round(3).astype(str))
 
         fig_pti = px.bar(
@@ -401,26 +402,37 @@ with tab1:
             x="PTI",
             y="Kota",
             orientation="h",
-            text="PTI_text",            # gunakan nama kolom string
+            text="PTI_text",
             color="Cluster",
             color_discrete_map=COLORS,
             title="<b>Peringkat Poverty Transition Index (PTI)</b>",
         )
 
+        # biarkan Plotly otomatis menempatkan teks (bagus untuk nilai negatif & positif)
         fig_pti.update_traces(
-            texttemplate='%{text}',     # tampilkan literal text kolom string
-            textposition="outside",
-            hovertemplate='<b>%{y}</b><br>PTI: %{x:.3f}<extra></extra>')
+            texttemplate='%{text}',
+            textposition='auto',    # 'auto' menempatkan teks di dalam/luar sesuai nilai
+            cliponaxis=False,
+            hovertemplate='<b>%{y}</b><br>PTI: %{x:.3f}<extra></extra>'
+        )
+
+        # Pastikan range x mencakup nilai negatif juga (padding 10%)
+        min_x = pti_sorted["PTI"].min() if not pti_sorted["PTI"].isna().all() else 0
+        max_x = pti_sorted["PTI"].max() if not pti_sorted["PTI"].isna().all() else 0
+        pad = (max_x - min_x) * 0.12 if (max_x - min_x) != 0 else 0.5
         fig_pti.update_layout(
             height=520,
-            margin=dict(l=120, r=40, t=80, b=60),
+            margin=dict(l=140, r=40, t=80, b=60),
             plot_bgcolor='white',
             paper_bgcolor='white',
-            xaxis=dict(title="PTI Value", showgrid=True, gridcolor='rgba(0,0,0,0.05)'),
+            xaxis=dict(title="PTI Value", showgrid=True, gridcolor='rgba(0,0,0,0.05)',
+                    range=[min_x - pad, max_x + pad]),
             yaxis=dict(title="", autorange="reversed"),
             legend=dict(title="Cluster", bgcolor='white', bordercolor='#1d5175', borderwidth=1)
         )
+
         st.plotly_chart(fig_pti, use_container_width=True)
+
 
         
         # Tabel 12 Indikator dengan Statistika Deskriptif
@@ -444,42 +456,20 @@ with tab1:
 
 with tab2:
     st.header("Indeks Pembangunan Manusia & Kemiskinan")
-    
-    if len(filtered_full) == 0:
-        st.warning("⚠️ Tidak ada data yang sesuai dengan filter yang dipilih. Silakan sesuaikan filter di sidebar.")
-    else:
-        # IPM and MPI charts
-        colA, colB = st.columns(2)
-        
-        with colA:
-            # IPM
-            ipm_data_filtered = filtered_full.dropna(subset=['IPM']).sort_values('IPM', ascending=False)
-            if len(ipm_data_filtered) > 0:
-                ipm_data_filtered = ipm_data_filtered.assign(IPM_text = ipm_data_filtered["IPM"].round(2).astype(str))
-                fig_ipm = px.bar(
-                    ipm_data_filtered,
-                    x="Kota",
-                    y="IPM",
-                    text="IPM_text",
-                    title="<b>Indeks Pembangunan Manusia (IPM)</b>",
-                    color_discrete_sequence=["#1d5175"]
-                )
-                fig_ipm.update_traces(texttemplate='%{text}', 
-                                      textposition='outside',
-                                      hovertemplate='<b>%{x}</b><br>IPM: %{y:.2f}<extra></extra>'
-                )
-                fig_ipm.update_layout(
-                    height=420,
-                    margin=dict(l=40, r=40, t=60, b=120),
-                    plot_bgcolor='white',
-                    paper_bgcolor='white',
-                    yaxis=dict(title="IPM", gridcolor='rgba(0,0,0,0.05)'),
-                    xaxis=dict(tickangle=-45)
-                )
-                st.plotly_chart(fig_ipm, use_container_width=True)
-            else:
-                st.info("Tidak ada data IPM untuk ditampilkan dengan filter saat ini.")
 
+    if len(filtered_full) == 0:
+        st.warning("⚠️ Tidak ada data yang sesuai dengan filter yang dipilih.")
+    else:
+        # Pastikan kolom numeric
+        for c in ["IPM","MPI","P1","P2"]:
+            if c in filtered_full.columns:
+                filtered_full[c] = pd.to_numeric(filtered_full[c], errors="coerce")
+
+        # Buat tabel per metrik, diurutkan
+        st.subheader("Peringkat IPM")
+        ipm_table = filtered_full.dropna(subset=["IPM"]).sort_values("IPM", ascending=False)[["Kota","IPM"]].reset_index(drop=True)
+        ipm_table.index = ipm_table.index + 1
+        st.dataframe(ipm_table.style.format({"IPM":"{:.2f}"}), use_container_width=True, height=300)
 
         st.markdown("""
         <div class="info-box">
@@ -492,34 +482,11 @@ with tab2:
         </div>
         """, unsafe_allow_html=True)
 
-        
-        with colB:
-            mpi_data_filtered = filtered_full.dropna(subset=['MPI']).sort_values('MPI', ascending=False)
-            if len(mpi_data_filtered) > 0:
-                mpi_data_filtered = mpi_data_filtered.assign(MPI_text = mpi_data_filtered["MPI"].round(2).astype(str))
-                fig_mpi = px.bar(
-                    mpi_data_filtered,
-                    x="Kota",
-                    y="MPI",
-                    text="MPI_text",
-                    title="<b>Indeks Kemiskinan Multidimensi (MPI)</b>",
-                    color_discrete_sequence=["#1d5175"]
-                )
-                fig_mpi.update_traces(texttemplate='%{text}', textposition='outside',
-                                      hovertemplate='<b>%{x}</b><br>MPI: %{y:.2f}<extra></extra>')
-                fig_mpi.update_layout(
-                    height=420,
-                    margin=dict(l=40, r=40, t=60, b=120),
-                    plot_bgcolor='white',
-                    paper_bgcolor='white',
-                    yaxis=dict(title="MPI", gridcolor='rgba(0,0,0,0.05)'),
-                    xaxis=dict(tickangle=-45)
-                )
-                st.plotly_chart(fig_mpi, use_container_width=True)
-            else:
-                st.info("Tidak ada data MPI untuk ditampilkan dengan filter saat ini.")
-
-
+        st.subheader("Peringkat MPI")
+        # untuk MPI, nilai lebih kecil lebih baik (biasanya), tapi kalau kamu mau urut tinggi->rendah ganti ascending=False
+        mpi_table = filtered_full.dropna(subset=["MPI"]).sort_values("MPI", ascending=False)[["Kota","MPI"]].reset_index(drop=True)  
+        mpi_table.index = mpi_table.index + 1
+        st.dataframe(mpi_table.style.format({"MPI":"{:.3f}"}), use_container_width=True, height=300)
         st.markdown("""
         <div class="info-box">
             <h4 style='color:#1d5175;'>Interpretasi MPI</h4>
@@ -535,36 +502,10 @@ with tab2:
         </div>
         """, unsafe_allow_html=True)
 
-            
-        # P1 and P2 charts
-        colC, colD = st.columns(2)
-        
-        with colC:
-            p1_data_filtered = filtered_full.dropna(subset=['P1']).sort_values('P1', ascending=False)
-            if len(p1_data_filtered) > 0:
-                p1_data_filtered = p1_data_filtered.assign(P1_text = p1_data_filtered["P1"].round(2).astype(str))
-                fig_p1 = px.bar(
-                    p1_data_filtered,
-                    x="Kota",
-                    y="P1",
-                    text="P1_text",
-                    title="<b>Indeks Kedalaman Kemiskinan (P1)</b>",
-                    color_discrete_sequence=["#1d5175"]
-                )
-                fig_p1.update_traces(texttemplate='%{text}', textposition='outside',
-                                     hovertemplate='<b>%{x}</b><br>P1: %{y:.2f}<extra></extra>')
-                fig_p1.update_layout(
-                    height=420,
-                    margin=dict(l=40, r=40, t=60, b=120),
-                    plot_bgcolor='white',
-                    paper_bgcolor='white',
-                    yaxis=dict(title="P1", gridcolor='rgba(0,0,0,0.05)'),
-                    xaxis=dict(tickangle=-45)
-                )
-                st.plotly_chart(fig_p1, use_container_width=True)
-            else:
-                st.info("Tidak ada data P1 untuk ditampilkan dengan filter saat ini.")
-
+        st.subheader("Peringkat P1")
+        p1_table = filtered_full.dropna(subset=["P1"]).sort_values("P1", ascending=False)[["Kota","P1"]].reset_index(drop=True)
+        p1_table.index = p1_table.index + 1
+        st.dataframe(p1_table.style.format({"P1":"{:.2f}"}), use_container_width=True, height=300)
 
         st.markdown("""
         <div class="info-box">
@@ -577,33 +518,11 @@ with tab2:
         </div>
         """, unsafe_allow_html=True)
 
-        
-        with colD:
-            p2_data_filtered = filtered_full.dropna(subset=['P2']).sort_values('P2', ascending=False)
-            if len(p2_data_filtered) > 0:
-                p2_data_filtered = p2_data_filtered.assign(P2_text = p2_data_filtered["P2"].round(2).astype(str))
-                fig_p2 = px.bar(
-                    p2_data_filtered,
-                    x="Kota",
-                    y="P2",
-                    text="P2_text",
-                    title="<b>Indeks Keparahan Kemiskinan (P2)</b>",
-                    color_discrete_sequence=["#1d5175"]
-                )
-                fig_p2.update_traces(texttemplate='%{text}', textposition='outside',
-                                     hovertemplate='<b>%{x}</b><br>P2: %{y:.2f}<extra></extra>')
-                fig_p2.update_layout(
-                    height=420,
-                    margin=dict(l=40, r=40, t=60, b=120),
-                    plot_bgcolor='white',
-                    paper_bgcolor='white',
-                    yaxis=dict(title="P2", gridcolor='rgba(0,0,0,0.05)'),
-                    xaxis=dict(tickangle=-45)
-                )
-                st.plotly_chart(fig_p2, use_container_width=True)
-            else:
-                st.info("Tidak ada data P2 untuk ditampilkan dengan filter saat ini.")
 
+        st.subheader("Peringkat P2")
+        p2_table = filtered_full.dropna(subset=["P2"]).sort_values("P2", ascending=False)[["Kota","P2"]].reset_index(drop=True)
+        p2_table.index = p2_table.index + 1
+        st.dataframe(p2_table.style.format({"P2":"{:.2f}"}), use_container_width=True, height=300)
 
         st.markdown("""
         <div class="info-box">
